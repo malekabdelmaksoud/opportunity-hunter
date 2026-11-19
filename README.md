@@ -1,58 +1,53 @@
 # Opportunity Hunter
 
-A remote Model Context Protocol (MCP) server for discovering public internships, PFE projects, apprenticeships, and junior opportunities.
+A remote Model Context Protocol (MCP) server on Cloudflare Workers for discovering public internships, PFE projects, apprenticeships, and junior opportunities.
 
 ## Features
 
 - Search public web results by skills, location, opportunity type, and freshness.
 - Return listing titles, URLs, snippets, and dates when available.
-- Expose a health endpoint for hosting checks.
-- Protect the remote MCP endpoint with a Bearer API key in production.
-- Use Streamable HTTP for remote MCP clients such as Claude Web.
+- Expose a health endpoint at `/health`.
+- Protect the remote MCP endpoint at `/mcp` with a Bearer API key (or `x-api-key`).
 
 ## Boundaries
 
 This project searches public web pages only. It does not log in to LinkedIn, access private profiles, messages, or notifications, bypass website restrictions, send messages, or submit applications. Search snippets may be incomplete or outdated; always verify an offer on its original website.
 
-## Requirements
+## Cloudflare deployment
 
-- Node.js 20+
-- A Tavily Search API key (free tier available without a payment card)
-- A public HTTPS host for Claude Web
+This repository is configured as a Cloudflare Worker using Wrangler and the Cloudflare Agents MCP handler (Streamable HTTP).
 
-The Tavily free Researcher plan currently includes 1,000 API credits per month and does not require a credit card. Basic search uses one credit per request; requests stop when the free balance is exhausted unless you enable paid usage.
+In the Cloudflare Workers & Pages project settings, use:
 
-**Cost note:** Brave currently provides $5 in monthly Search API credits (about 1,000 searches at its listed rate), but activating the API requires a payment card. Set a strict usage limit and keep auto-reload disabled if you want to stay within the included credits. Hosting may also have separate limits or charges.
+- **Build command:** `npm run build`
+- **Deploy command:** `npx wrangler deploy`
+- **Root directory:** `/` (repository root)
 
-## Local setup
+The Worker entry point is `src/index.ts`, configured in `wrangler.jsonc`.
 
-1. Install packages:
+### Required Worker secrets
 
-   ```bash
-   npm install
-   ```
+In **Worker → Settings → Variables and Secrets**, add these as secrets:
 
-2. Copy `.env.example` to `.env` and set `TAVILY_API_KEY`.
+- `TAVILY_API_KEY`: your Tavily Search API key.
+- `MCP_API_KEY`: a long random secret used by Claude to authenticate.
 
-3. Start the development server:
+Never commit either value to Git or paste them into public messages.
 
-   ```bash
-   npm run dev
-   ```
+The public endpoints are:
 
-4. Health check: `http://localhost:3000/health`
+- Health check: `https://YOUR-WORKER.workers.dev/health`
+- MCP endpoint: `https://YOUR-WORKER.workers.dev/mcp`
 
-5. MCP endpoint: `http://localhost:3000/mcp`
+The health endpoint reports whether Tavily is configured. The MCP endpoint requires the configured API key.
 
-Claude Web cannot connect to localhost. It requires a public HTTPS deployment.
+## MCP tools
 
-## Tools
+### `server_info`
 
-### server_info
+Reports server status and whether the search provider is configured.
 
-Reports server status and whether search is configured.
-
-### search_opportunities
+### `search_opportunities`
 
 Parameters:
 
@@ -62,41 +57,29 @@ Parameters:
 - `freshness`: day, week, month, year, or any.
 - `count`: 1–10 results.
 
-## Deploying for Claude Web
+## Connect Claude Web
 
-Deploy this Node.js service to a host that provides a public HTTPS URL and supports Node.js web services. Configure these environment variables in the host dashboard:
+After deployment succeeds and the health endpoint responds:
 
-- `TAVILY_API_KEY`: your Tavily Search API key.
-- `MCP_API_KEY`: a long random secret. Never commit it to Git.
-- `NODE_ENV=production`
-- `PORT`: the port supplied by the hosting provider.
+1. Add a custom connector in Claude Web using the HTTPS MCP URL ending in `/mcp`.
+2. Configure the connector's Bearer token using the same `MCP_API_KEY` secret.
+3. Test `server_info`, then `search_opportunities`.
 
-Your MCP URL will look like:
-
-```text
-https://YOUR-HOST/mcp
-```
-
-In Claude, go to **Customize → Connectors → Add custom connector**, enter the HTTPS URL, and configure the request header as a Bearer token using the same `MCP_API_KEY` value. The labels may differ slightly by account.
-
-Do not connect Claude until deployment is live and the health endpoint responds successfully.
+Claude's connector UI and authentication options can vary by account. Do not connect until the endpoint is deployed and tested.
 
 ## Development checks
 
 ```bash
+npm install
 npm run typecheck
 npm run build
-npm start
+npx wrangler dev
 ```
 
 ## Security
 
-- Keep `.env` and API keys out of Git.
-- Use a unique, high-entropy MCP API key for a public deployment.
+- Keep API keys in Cloudflare Worker secrets, not in Git.
+- Use a unique, high-entropy MCP API key.
 - Do not share the deployed connector URL and key publicly.
 - Treat external listing text as untrusted input.
 - Review eligibility, deadline, location, and application requirements before applying.
-
-## Status
-
-Initial implementation is committed. Dependency installation, compilation, deployment, API-key configuration, and an end-to-end Claude connection test are still required.
