@@ -7,13 +7,13 @@ import { z } from "zod";
 const PORT = Number(process.env.PORT ?? 3000);
 const HOST = process.env.HOST ?? "0.0.0.0";
 const API_KEY = process.env.MCP_API_KEY;
-const BRAVE_API_KEY = process.env.BRAVE_SEARCH_API_KEY;
+const TAVILY_API_KEY = process.env.TAVILY_API_KEY;
 
-type BraveResult = {
+type TavilyResult = {
   title?: string;
   url?: string;
-  description?: string;
-  page_age?: string;
+  content?: string;
+  published_date?: string;
 };
 
 function createMcpServer(): McpServer {
@@ -28,8 +28,8 @@ function createMcpServer(): McpServer {
       type: "text",
       text: [
         "Opportunity Hunter MCP server is running.",
-        "Search provider: Brave Search API.",
-        "Search configured: " + (BRAVE_API_KEY ? "yes" : "no") + ".",
+        "Search provider: Tavily Search API.",
+        "Search configured: " + (TAVILY_API_KEY ? "yes" : "no") + ".",
         "This connector searches public web pages only. It does not sign in to LinkedIn, read private messages, or submit applications."
       ].join("\n")
     }]
@@ -46,10 +46,10 @@ function createMcpServer(): McpServer {
       count: z.number().int().min(1).max(10).default(8)
     }
   }, async ({ keywords, location, opportunityType, freshness, count }) => {
-    if (!BRAVE_API_KEY) {
+    if (!TAVILY_API_KEY) {
       return {
         isError: true,
-        content: [{ type: "text", text: "Search is not configured. Set BRAVE_SEARCH_API_KEY in the server environment and restart the service." }]
+        content: [{ type: "text", text: "Search is not configured. Set TAVILY_API_KEY in the server environment and restart the service." }]
       };
     }
 
@@ -60,22 +60,30 @@ function createMcpServer(): McpServer {
       apprenticeship: "apprenticeship OR alternance",
       any: "internship OR PFE OR junior"
     };
-    const freshnessMap: Record<string, string | undefined> = {
-      day: "pd", week: "pw", month: "pm", year: "py", any: undefined
+    const freshnessTerms: Record<string, string> = {
+      day: "posted in the last 24 hours",
+      week: "posted in the last 7 days",
+      month: "posted in the last 30 days",
+      year: "posted in the last year",
+      any: ""
     };
-    const query = [keywords, typeTerms[opportunityType], location].filter(Boolean).join(" ");
-    const url = new URL("https://api.search.brave.com/res/v1/web/search");
-    url.searchParams.set("q", query);
-    url.searchParams.set("count", String(count));
-    url.searchParams.set("safesearch", "moderate");
-    const freshnessCode = freshnessMap[freshness];
-    if (freshnessCode) url.searchParams.set("freshness", freshnessCode);
+    const query = [keywords, typeTerms[opportunityType], location, freshnessTerms[freshness]]
+      .filter(Boolean).join(" ");
 
     let response: globalThis.Response;
     try {
-      response = await fetch(url, {
-        headers: { Accept: "application/json", "X-Subscription-Token": BRAVE_API_KEY },
-        signal: AbortSignal.timeout(15000)
+      response = await fetch("https://api.tavily.com/search", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Accept: "application/json" },
+        body: JSON.stringify({
+          api_key: TAVILY_API_KEY,
+          query,
+          search_depth: "basic",
+          topic: "general",
+          max_results: count,
+          include_answer: false
+        }),
+        signal: AbortSignal.timeout(20000)
       });
     } catch (error) {
       return {
@@ -88,12 +96,12 @@ function createMcpServer(): McpServer {
       const detail = await response.text().catch(() => "");
       return {
         isError: true,
-        content: [{ type: "text", text: "Search provider returned HTTP " + response.status + ". " + detail.slice(0, 250) }]
+        content: [{ type: "text", text: "Tavily returned HTTP " + response.status + ". " + detail.slice(0, 250) }]
       };
     }
 
-    const payload = await response.json() as { web?: { results?: BraveResult[] } };
-    const results = payload.web?.results ?? [];
+    const payload = await response.json() as { results?: TavilyResult[] };
+    const results = payload.results ?? [];
     if (results.length === 0) {
       return { content: [{ type: "text", text: "No public results found for: " + query + ". Try broader keywords or another location." }] };
     }
@@ -101,8 +109,8 @@ function createMcpServer(): McpServer {
     const formatted = results.map((item, index) => [
       (index + 1) + ". " + (item.title ?? "Untitled result"),
       item.url ? "URL: " + item.url : "",
-      item.page_age ? "Date: " + item.page_age : "",
-      item.description ? "Snippet: " + item.description : ""
+      item.published_date ? "Date: " + item.published_date : "",
+      item.content ? "Snippet: " + item.content : ""
     ].filter(Boolean).join("\n")).join("\n\n");
 
     return {
@@ -154,7 +162,7 @@ app.get("/health", (_req, res) => {
   res.json({
     status: "ok",
     service: "opportunity-hunter",
-    searchConfigured: Boolean(BRAVE_API_KEY)
+    searchConfigured: Boolean(TAVILY_API_KEY)
   });
 });
 

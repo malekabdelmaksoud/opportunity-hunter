@@ -17,8 +17,10 @@ This project searches public web pages only. It does not log in to LinkedIn, acc
 ## Requirements
 
 - Node.js 20+
-- A Brave Search API key
+- A Tavily Search API key (free tier available without a payment card)
 - A public HTTPS host for Claude Web
+
+The Tavily free Researcher plan currently includes 1,000 API credits per month and does not require a credit card. Basic search uses one credit per request; requests stop when the free balance is exhausted unless you enable paid usage.
 
 **Cost note:** Brave currently provides $5 in monthly Search API credits (about 1,000 searches at its listed rate), but activating the API requires a payment card. Set a strict usage limit and keep auto-reload disabled if you want to stay within the included credits. Hosting may also have separate limits or charges.
 
@@ -30,7 +32,7 @@ This project searches public web pages only. It does not log in to LinkedIn, acc
    npm install
    ```
 
-2. Copy `.env.example` to `.env` and set `BRAVE_SEARCH_API_KEY`.
+2. Copy `.env.example` to `.env` and set `TAVILY_API_KEY`.
 
 3. Start the development server:
 
@@ -64,7 +66,7 @@ Parameters:
 
 Deploy this Node.js service to a host that provides a public HTTPS URL and supports Node.js web services. Configure these environment variables in the host dashboard:
 
-- `BRAVE_SEARCH_API_KEY`: your search provider key.
+- `TAVILY_API_KEY`: your Tavily Search API key.
 - `MCP_API_KEY`: a long random secret. Never commit it to Git.
 - `NODE_ENV=production`
 - `PORT`: the port supplied by the hosting provider.
