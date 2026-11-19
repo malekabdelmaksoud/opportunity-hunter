@@ -2,11 +2,9 @@
   "name": "opportunity-hunter",
   "version": "0.1.0",
   "private": true,
-  "description": "A remote MCP connector for discovering internships, PFE projects, and junior opportunities.",
+  "description": "Remote MCP connector for discovering internships, PFE projects, and junior opportunities.",
   "type": "module",
-  "engines": {
-    "node": ">=20"
-  },
+  "engines": { "node": ">=20" },
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "build": "tsc -p tsconfig.json",
