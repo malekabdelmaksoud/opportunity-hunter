@@ -13,7 +13,7 @@
   "dependencies": {
     "agents": "0.33.0",
     "zod": "^4.1.12",
-    "@modelcontextprotocol/sdk": "1.32.2"
+    "@modelcontextprotocol/server": "2.3.1"
   },
   "devDependencies": {
     "typescript": "^5.9.3",
