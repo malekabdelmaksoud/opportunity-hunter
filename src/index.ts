@@ -22,7 +22,7 @@ function createMcpServer(tavilyApiKey?: string): McpServer {
     {
       title: "Opportunity Hunter status",
       description: "Check whether the Opportunity Hunter connector and search provider are configured.",
-      inputSchema: {}
+      inputSchema: z.object({})
     },
     async () => ({
       content: [{
@@ -42,13 +42,13 @@ function createMcpServer(tavilyApiKey?: string): McpServer {
     {
       title: "Search internships and jobs",
       description: "Search public web results for internships, PFE projects, apprenticeships, and junior jobs. Returns titles, links, snippets, and dates when available. Verify every offer on its original website.",
-      inputSchema: {
+      inputSchema: z.object({
         keywords: z.string().min(2).max(160).describe("Skills or role, for example web development, Java, cybersecurity, or AI security."),
         location: z.string().max(100).default("Tunisia").describe("Target country, city, or region."),
         opportunityType: z.enum(["internship", "PFE", "junior job", "apprenticeship", "any"]).default("any"),
         freshness: z.enum(["day", "week", "month", "year", "any"]).default("month"),
         count: z.number().int().min(1).max(10).default(8)
-      }
+      })
     },
     async ({ keywords, location, opportunityType, freshness, count }) => {
       if (!tavilyApiKey) {
