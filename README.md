@@ -20,6 +20,8 @@ This project searches public web pages only. It does not log in to LinkedIn, acc
 - A Brave Search API key
 - A public HTTPS host for Claude Web
 
+**Cost note:** Brave currently provides $5 in monthly Search API credits (about 1,000 searches at its listed rate), but activating the API requires a payment card. Set a strict usage limit and keep auto-reload disabled if you want to stay within the included credits. Hosting may also have separate limits or charges.
+
 ## Local setup
 
 1. Install packages:
