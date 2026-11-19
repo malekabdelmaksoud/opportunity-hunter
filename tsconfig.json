@@ -8,8 +8,9 @@
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "noUncheckedIndexedAccess": true,
-    "types": [
-      "@cloudflare/workers-types"
+    "lib": [
+      "ES2022",
+      "DOM"
     ]
   },
   "include": [
