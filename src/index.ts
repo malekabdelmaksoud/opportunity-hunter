@@ -139,7 +139,7 @@ function createMcpServer(tavilyApiKey?: string): McpServer {
 }
 
 export default {
-  async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
+  async fetch(request: Request, env: Env, ctx: { waitUntil(promise: Promise<unknown>): void; passThroughOnException(): void }): Promise<Response> {
     const url = new URL(request.url);
 
     if (url.pathname === "/health") {
